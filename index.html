@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archery Scoring & Sight Assistant</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col antialiased">
+
+    <!-- NAVIGATION HEADER -->
+    <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 bg-slate-950/90">
+            <div class="flex items-center gap-3">
+                <div class="bg-amber-500/20 p-2.5 rounded-xl text-amber-400 border border-amber-500/30">
+                    <i data-lucide="crosshair" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-black bg-gradient-to-r from-amber-400 via-rose-400 to-sky-400 bg-clip-text text-transparent">
+                        Archery Score & Sight
+                    </h1>
+                    <p class="text-xs text-slate-400 font-medium">WA 360 Round & Precision Sight Assistant</p>
+                </div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <nav class="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+                <button id="nav-scoring" onclick="switchTab('scoring')" class="tab-btn flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition bg-amber-500 text-slate-950 shadow">
+                    <i data-lucide="target" class="w-4 h-4"></i> <span class="hidden sm:inline">Scoring Sheet</span>
+                </button>
+                <button id="nav-analytics" onclick="switchTab('analytics')" class="tab-btn flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition text-slate-400 hover:text-slate-200 hover:bg-slate-800">
+                    <i data-lucide="sliders" class="w-4 h-4"></i> <span class="hidden sm:inline">Sight Assistant</span>
+                </button>
+                <button id="nav-history" onclick="switchTab('history')" class="tab-btn flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition text-slate-400 hover:text-slate-200 hover:bg-slate-800">
+                    <i data-lucide="calendar" class="w-4 h-4"></i> <span class="hidden sm:inline">History Log</span>
+                </button>
+                <button id="nav-gear" onclick="switchTab('gear')" class="tab-btn flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition text-slate-400 hover:text-slate-200 hover:bg-slate-800">
+                    <i data-lucide="settings" class="w-4 h-4"></i> <span class="hidden sm:inline">Bow Setup</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- MAIN APP CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
+
+        <!-- TAB 1: SCORING SHEET -->
+        <section id="tab-scoring" class="tab-content grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Left Side: Target Canvas & Controls -->
+            <div class="lg:col-span-7 flex flex-col gap-6">
+                <!-- Config Panel -->
+                <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex items-center gap-4 flex-wrap">
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1 font-semibold">Date</label>
+                            <input type="date" id="input-date" onchange="state.sessionDate = this.value" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1 font-semibold">Distance</label>
+                            <select id="input-distance" onchange="handleDistanceChange(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                                <option value="18m">18m Indoor</option>
+                                <option value="30m">30m Outdoor</option>
+                                <option value="50m" selected>50m WA</option>
+                                <option value="60m">60m Outdoor</option>
+                                <option value="70m">70m Olympic</option>
+                                <option value="Custom">Custom</option>
+                            </select>
+                        </div>
+
+                        <div id="custom-distance-container" class="hidden">
+                            <label class="text-xs text-slate-400 block mb-1 font-semibold">Meters</label>
+                            <input type="number" id="input-custom-distance" placeholder="m" class="w-20 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1 font-semibold">End Format</label>
+                            <select id="input-end-format" onchange="handleEndFormatChange(Number(this.value))" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                                <option value="6" selected>6 Arrows / End (6 Ends)</option>
+                                <option value="3">3 Arrows / End (12 Ends)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button onclick="removeLastArrow()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-semibold text-slate-300 transition">
+                            Undo
+                        </button>
+                        <button onclick="resetRound()" class="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg text-xs font-semibold transition flex items-center gap-1">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Clear
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Target Interactive Face -->
+                <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-6 flex flex-col items-center justify-center relative">
+                    <div class="w-full flex items-center justify-between mb-3 text-xs text-slate-400">
+                        <div class="flex items-center gap-1.5">
+                            <i data-lucide="info" class="w-3.5 h-3.5 text-amber-400"></i>
+                            <span>Click target or tap buttons to plot</span>
+                        </div>
+                        
+                        <!-- Toggle Plot View Mode -->
+                        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 p-1 rounded-lg">
+                            <button id="view-mode-current" onclick="setPlotViewMode('current')" class="px-2.5 py-1 rounded text-[11px] font-semibold transition bg-amber-500 text-slate-950">
+                                Current End
+                            </button>
+                            <button id="view-mode-all" onclick="setPlotViewMode('all')" class="px-2.5 py-1 rounded text-[11px] font-semibold transition text-slate-400 hover:text-slate-200">
+                                All Ends
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- SVG Target -->
+                    <div class="w-full max-w-[340px] aspect-square relative select-none">
+                        <svg id="target-svg" viewBox="-135 -135 270 270" class="w-full h-full cursor-crosshair rounded-full shadow-2xl touch-none" onclick="handleTargetClick(event)">
+                            <!-- Target rings rendered dynamically by renderTarget() -->
+                        </svg>
+                    </div>
+
+                    <!-- Quick Score Keypad -->
+                    <div class="w-full mt-6">
+                        <p class="text-xs text-slate-400 mb-2 text-center font-medium">Quick Score Keypad</p>
+                        <div id="quick-buttons-grid" class="grid grid-cols-6 sm:grid-cols-12 gap-1.5">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Live Scorecard & End Details -->
+            <div class="lg:col-span-5 flex flex-col gap-6">
+                <!-- Round Summary Header -->
+                <div class="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-amber-500/30 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+                            WA 360 Round
+                        </span>
+                        <span id="arrow-counter" class="text-xs text-slate-400 font-mono">
+                            0 / 36 Arrows
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3 text-center my-2">
+                        <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-800">
+                            <div id="stat-total-score" class="text-2xl font-black text-slate-100">0</div>
+                            <div class="text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">Total Score</div>
+                        </div>
+
+                        <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-800">
+                            <div id="stat-tens-xs" class="text-2xl font-black text-amber-400">0 <span class="text-xs text-slate-400">(0X)</span></div>
+                            <div class="text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">10s & Xs</div>
+                        </div>
+
+                        <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-800">
+                            <div id="stat-avg-score" class="text-2xl font-black text-sky-400">0.00</div>
+                            <div class="text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">Avg / Arrow</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between">
+                        <div class="text-xs text-slate-400">
+                            Current End: <span id="stat-current-end" class="font-bold text-slate-200">1 / 6</span>
+                        </div>
+                        <button onclick="saveCurrentSession()" class="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl hover:opacity-90 transition shadow-lg">
+                            <i data-lucide="save" class="w-4 h-4"></i> Save Session
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Ends Breakdown Card -->
+                <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 flex-1 flex flex-col">
+                    <h3 class="text-sm font-bold text-slate-200 mb-3 flex items-center justify-between">
+                        <span>Ends Breakdown</span>
+                        <span id="end-format-subtitle" class="text-xs font-normal text-slate-400">6 arrows / end</span>
+                    </h3>
+
+                    <div id="ends-list" class="overflow-y-auto flex-1 space-y-2 pr-1 max-h-[320px]">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: SIGHT ASSISTANT -->
+        <section id="tab-analytics" class="tab-content hidden grid grid-cols-1 md:grid-cols-12 gap-6">
+            <!-- Sight Recommendation Banner -->
+            <div class="md:col-span-12 bg-slate-950/80 border border-sky-500/30 rounded-2xl p-6">
+                <div class="flex items-start gap-4">
+                    <div class="bg-sky-500/20 p-3 rounded-2xl text-sky-400 border border-sky-500/30">
+                        <i data-lucide="compass" class="w-8 h-8"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h2 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+                            Real-Time Sight Adjustment Assistant
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">
+                            Calculated using your arrow grouping centroid. ("Follow the group" rule: adjust sight pin towards the impact location).
+                        </p>
+
+                        <div id="sight-advice-container" class="mt-4">
+                            <!-- Populated dynamically via JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Group Visualizer -->
+            <div class="md:col-span-6 bg-slate-950/60 border border-slate-800 rounded-2xl p-5 flex flex-col items-center">
+                <h3 class="text-sm font-bold text-slate-200 mb-1 self-start flex items-center gap-2">
+                    <i data-lucide="crosshair" class="w-4 h-4 text-amber-400"></i> Grouping & Centroid Plot
+                </h3>
+                <p class="text-xs text-slate-400 mb-4 self-start">
+                    Cyan dashed crosshair represents current calculated center of mass.
+                </p>
+
+                <div class="w-full max-w-[280px] aspect-square relative">
+                    <svg id="analytics-target-svg" viewBox="-135 -135 270 270" class="w-full h-full rounded-full shadow-lg">
+                        <!-- Rendered dynamically -->
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Sight Settings Calibration -->
+            <div class="md:col-span-6 bg-slate-950/60 border border-slate-800 rounded-2xl p-5">
+                <h3 class="text-sm font-bold text-slate-200 mb-4 flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-4 h-4 text-sky-400"></i> Sight Click Calibration
+                </h3>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Click Sensitivity (mm shift per click)</label>
+                        <input type="number" id="input-click-sensitivity" step="0.05" onchange="updateGearSensitivity(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                        <p class="text-[11px] text-slate-500 mt-1">Compound: ~0.1mm - 0.25mm / click. Recurve: ~0.2mm / click.</p>
+                    </div>
+
+                    <div class="border-t border-slate-800 pt-4">
+                        <h4 class="text-xs font-bold text-slate-300 mb-3">Saved Sight Marks</h4>
+                        <div id="saved-sight-marks-grid" class="grid grid-cols-2 gap-3">
+                            <!-- Rendered dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: HISTORY LOG -->
+        <section id="tab-history" class="tab-content hidden space-y-6">
+            <!-- Score Chart -->
+            <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-5">
+                <h3 class="text-sm font-bold text-slate-200 mb-4 flex items-center gap-2">
+                    <i data-lucide="trending-up" class="w-4 h-4 text-emerald-400"></i> Score Progression Over Time
+                </h3>
+                <div class="h-64 w-full">
+                    <canvas id="scoreChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Recorded Logs List -->
+            <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-5">
+                <h3 class="text-sm font-bold text-slate-200 mb-4 flex items-center justify-between">
+                    <span class="flex items-center gap-2">
+                        <i data-lucide="calendar" class="w-4 h-4 text-amber-400"></i> Past Practice Logs
+                    </span>
+                    <span id="history-count" class="text-xs text-slate-400">0 Sessions</span>
+                </h3>
+
+                <div id="history-list" class="space-y-3">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: BOW SETUP -->
+        <section id="tab-gear" class="tab-content hidden bg-slate-950/60 border border-slate-800 rounded-2xl p-6 max-w-3xl mx-auto">
+            <h3 class="text-base font-bold text-slate-100 mb-6 flex items-center gap-2">
+                <i data-lucide="settings" class="w-5 h-5 text-amber-400"></i> Bow Setup & Equipment Profile
+            </h3>
+
+            <form id="gear-form" onsubmit="saveGearProfile(event)" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1 font-semibold">Bow Type</label>
+                        <select id="gear-bow-type" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                            <option value="Recurve">Olympic Recurve</option>
+                            <option value="Compound">Compound</option>
+                            <option value="Barebow">Barebow</option>
+                            <option value="Longbow">Longbow / Traditional</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1 font-semibold">Draw Weight / Poundage (lbs)</label>
+                        <input type="number" id="gear-poundage" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                    </div>
+
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1 font-semibold">Draw Length (inches)</label>
+                        <input type="text" id="gear-draw-length" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                    </div>
+
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1 font-semibold">Arrow Model & Spine</label>
+                        <input type="text" id="gear-arrow-model" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-800 pt-6">
+                    <h4 class="text-sm font-bold text-slate-200 mb-4">Saved Distance Sight Marks</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1 font-medium">18m Mark</label>
+                            <input type="text" id="sight-mark-18m" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono text-amber-400 focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1 font-medium">30m Mark</label>
+                            <input type="text" id="sight-mark-30m" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono text-amber-400 focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1 font-medium">50m Mark</label>
+                            <input type="text" id="sight-mark-50m" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono text-amber-400 focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1 font-medium">70m Mark</label>
+                            <input type="text" id="sight-mark-70m" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono text-amber-400 focus:outline-none focus:border-amber-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4 flex justify-end">
+                    <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl transition flex items-center gap-2">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i> Save Setup Profile
+                    </button>
+                </div>
+            </form>
+        </section>
+
+    </main>
+
+    <!-- JS LOGIC ENGINE -->
+    <script>
+        // TARGET RING DEFINITIONS
+        const RINGS = [
+            { value: 'X', score: 10, r: 8, color: '#fef08a', text: '#854d0e', label: 'X' },
+            { value: '10', score: 10, r: 16, color: '#eab308', text: '#713f12', label: '10' },
+            { value: '9', score: 9, r: 28, color: '#facc15', text: '#713f12', label: '9' },
+            { value: '8', score: 8, r: 40, color: '#ef4444', text: '#ffffff', label: '8' },
+            { value: '7', score: 7, r: 52, color: '#dc2626', text: '#ffffff', label: '7' },
+            { value: '6', score: 6, r: 64, color: '#3b82f6', text: '#ffffff', label: '6' },
+            { value: '5', score: 5, r: 76, color: '#2563eb', text: '#ffffff', label: '5' },
+            { value: '4', score: 4, r: 88, color: '#1e293b', text: '#ffffff', label: '4' },
+            { value: '3', score: 3, r: 100, color: '#0f172a', text: '#ffffff', label: '3' },
+            { value: '2', score: 2, r: 112, color: '#f8fafc', text: '#0f172a', label: '2' },
+            { value: '1', score: 1, r: 124, color: '#e2e8f0', text: '#0f172a', label: '1' }
+        ];
+
+        // GLOBAL APP STATE
+        let state = {
+            activeTab: 'scoring',
+            plotViewMode: 'current', // 'current' or 'all'
+            sessionDate: new Date().toISOString().split('T')[0],
+            distance: '50m',
+            customDistance: '',
+            arrowsPerEnd: 6,
+            arrows: [],
+            currentEnd: 1,
+            gear: {
+                bowType: 'Recurve',
+                poundage: 38,
+                drawLength: '28.5',
+                arrowModel: 'Easton Avance 550',
+                sightClickSensitivity: 0.2,
+                sightMarks: { '18m': '2.1', '30m': '3.4', '50m': '5.2', '70m': '7.1' }
+            },
+            history: []
+        };
+
+        let chartInstance = null;
+
+        // INITIALIZATION
+        window.addEventListener('DOMContentLoaded', () => {
+            loadLocalStorage();
+            document.getElementById('input-date').value = state.sessionDate;
+            renderQuickButtons();
+            renderGearForm();
+            renderTarget();
+            renderScorecard();
+            renderAnalytics();
+            lucide.createIcons();
+        });
+
+        // LOCAL STORAGE
+        function loadLocalStorage() {
+            const savedGear = localStorage.getItem('archery_gear_profile');
+            if (savedGear) state.gear = JSON.parse(savedGear);
+
+            const savedHistory = localStorage.getItem('archery_history_log');
+            if (savedHistory) {
+                state.history = JSON.parse(savedHistory);
+            } else {
+                // Default mock entries
+                state.history = [
+                    {
+                        id: '1',
+                        date: '2026-10-20',
+                        distance: '50m',
+                        bowType: 'Recurve',
+                        poundage: 38,
+                        totalScore: 324,
+                        tens: 12,
+                        xs: 5,
+                        avgScore: 9.0
+                    },
+                    {
+                        id: '2',
+                        date: '2026-10-25',
+                        distance: '50m',
+                        bowType: 'Recurve',
+                        poundage: 38,
+                        totalScore: 338,
+                        tens: 18,
+                        xs: 8,
+                        avgScore: 9.39
+                    }
+                ];
+            }
+        }
+
+        function saveHistoryToStorage() {
+            localStorage.setItem('archery_history_log', JSON.stringify(state.history));
+        }
+
+        function saveGearToStorage() {
+            localStorage.setItem('archery_gear_profile', JSON.stringify(state.gear));
+        }
+
+        // TAB SWITCHING
+        function switchTab(tab) {
+            state.activeTab = tab;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = 'tab-btn flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition text-slate-400 hover:text-slate-200 hover:bg-slate-800';
+            });
+
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`nav-${tab}`);
+            activeBtn.className = 'tab-btn flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition bg-amber-500 text-slate-950 shadow';
+
+            if (tab === 'analytics') renderAnalytics();
+            if (tab === 'history') renderHistoryTab();
+        }
+
+        // TARGET & SCORING LOGIC
+        function handleDistanceChange(val) {
+            state.distance = val;
+            const customContainer = document.getElementById('custom-distance-container');
+            if (val === 'Custom') customContainer.classList.remove('hidden');
+            else customContainer.classList.add('hidden');
+        }
+
+        function handleEndFormatChange(val) {
+            state.arrowsPerEnd = val;
+            resetRound();
+        }
+
+        function handleTargetClick(e) {
+            if (state.arrows.length >= 36) return;
+
+            const svg = e.currentTarget;
+            const rect = svg.getBoundingClientRect();
+            const x = e.clientX - rect.left - rect.width / 2;
+            const y = e.clientY - rect.top - rect.height / 2;
+
+            const scale = 270 / rect.width;
+            const svgX = x * scale;
+            const svgY = y * scale;
+
+            const dist = Math.sqrt(svgX * svgX + svgY * svgY);
+
+            let hit = { val: 'M', score: 0 };
+            if (dist <= 8) hit = { val: 'X', score: 10 };
+            else if (dist <= 16) hit = { val: '10', score: 10 };
+            else if (dist <= 28) hit = { val: '9', score: 9 };
+            else if (dist <= 40) hit = { val: '8', score: 8 };
+            else if (dist <= 52) hit = { val: '7', score: 7 };
+            else if (dist <= 64) hit = { val: '6', score: 6 };
+            else if (dist <= 76) hit = { val: '5', score: 5 };
+            else if (dist <= 88) hit = { val: '4', score: 4 };
+            else if (dist <= 100) hit = { val: '3', score: 3 };
+            else if (dist <= 112) hit = { val: '2', score: 2 };
+            else if (dist <= 124) hit = { val: '1', score: 1 };
+
+            addArrow(hit.val, hit.score, svgX, svgY);
+        }
+
+        function handleQuickScore(val, score) {
+            if (state.arrows.length >= 36) return;
+
+            let r = 0;
+            if (val === 'X') r = 4;
+            else if (val === '10') r = 12;
+            else if (val === '9') r = 22;
+            else if (val === '8') r = 34;
+            else if (val === '7') r = 46;
+            else if (val === '6') r = 58;
+            else if (val === '5') r = 70;
+            else if (val === '4') r = 82;
+            else if (val === '3') r = 94;
+            else if (val === '2') r = 106;
+            else if (val === '1') r = 118;
+            else r = 135;
+
+            const angle = Math.random() * Math.PI * 2;
+            const x = r * Math.cos(angle);
+            const y = r * Math.sin(angle);
+
+            addArrow(val, score, x, y);
+        }
+
+        function addArrow(val, score, x, y) {
+            const currentEndArrows = state.arrows.filter(a => a.end === state.currentEnd);
+            if (currentEndArrows.length >= state.arrowsPerEnd) return;
+
+            const newArrow = {
+                id: Date.now() + Math.random(),
+                val,
+                score,
+                x,
+                y,
+                end: state.currentEnd
+            };
+
+            state.arrows.push(newArrow);
+
+            const updatedEndCount = state.arrows.filter(a => a.end === state.currentEnd).length;
+            const maxEnds = Math.ceil(36 / state.arrowsPerEnd);
+
+            if (updatedEndCount >= state.arrowsPerEnd && state.currentEnd < maxEnds) {
+                state.currentEnd += 1;
+            }
+
+            renderTarget();
+            renderScorecard();
+        }
+
+        function removeLastArrow() {
+            if (state.arrows.length === 0) return;
+            const lastArrow = state.arrows.pop();
+            const remainingCurrentEnd = state.arrows.filter(a => a.end === state.currentEnd).length;
+            if (remainingCurrentEnd === 0 && state.currentEnd > 1) {
+                state.currentEnd -= 1;
+            }
+            renderTarget();
+            renderScorecard();
+        }
+
+        function resetRound() {
+            state.arrows = [];
+            state.currentEnd = 1;
+            renderTarget();
+            renderScorecard();
+        }
+
+        function setPlotViewMode(mode) {
+            state.plotViewMode = mode;
+            const btnCurrent = document.getElementById('view-mode-current');
+            const btnAll = document.getElementById('view-mode-all');
+
+            if (mode === 'current') {
+                btnCurrent.className = "px-2.5 py-1 rounded text-[11px] font-semibold transition bg-amber-500 text-slate-950";
+                btnAll.className = "px-2.5 py-1 rounded text-[11px] font-semibold transition text-slate-400 hover:text-slate-200";
+            } else {
+                btnAll.className = "px-2.5 py-1 rounded text-[11px] font-semibold transition bg-amber-500 text-slate-950";
+                btnCurrent.className = "px-2.5 py-1 rounded text-[11px] font-semibold transition text-slate-400 hover:text-slate-200";
+            }
+            renderTarget();
+        }
+
+        // RENDERING SVG TARGET
+        function renderTarget() {
+            const svg = document.getElementById('target-svg');
+            if (!svg) return;
+
+            let html = '';
+
+            // Render rings (outside to inside)
+            [...RINGS].reverse().forEach(ring => {
+                html += `<circle cx="0" cy="0" r="${ring.r}" fill="${ring.color}" stroke="#000000" stroke-width="0.5" />`;
+            });
+
+            // Target crosshairs
+            html += `
+                <line x1="-130" y1="0" x2="130" y2="0" stroke="#000000" stroke-width="0.3" stroke-dasharray="2 2" opacity="0.6" />
+                <line x1="0" y1="-130" x2="0" y2="130" stroke="#000000" stroke-width="0.3" stroke-dasharray="2 2" opacity="0.6" />
+            `;
+
+            // Filter arrows based on view mode (Current End vs All Ends)
+            const displayArrows = state.plotViewMode === 'current'
+                ? state.arrows.filter(a => a.end === state.currentEnd)
+                : state.arrows;
+
+            // Plot arrows
+            displayArrows.forEach((arrow, idx) => {
+                html += `
+                    <g>
+                        <circle cx="${arrow.x}" cy="${arrow.y}" r="3.5" fill="#10b981" stroke="#ffffff" stroke-width="1.2" />
+                        <text x="${arrow.x + 4}" y="${arrow.y + 3}" font-size="7" font-weight="bold" fill="#ffffff" stroke="#000000" stroke-width="0.3">${idx + 1}</text>
+                    </g>
+                `;
+            });
+
+            // Grouping Centroid marker
+            const centroid = getGroupCentroid();
+            if (centroid.ready) {
+                html += `
+                    <g>
+                        <circle cx="${centroid.avgX}" cy="${centroid.avgY}" r="6" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="2 2" />
+                        <circle cx="${centroid.avgX}" cy="${centroid.avgY}" r="1.5" fill="#38bdf8" />
+                    </g>
+                `;
+            }
+
+            svg.innerHTML = html;
+        }
+
+        // RENDERING QUICK SCORE BUTTONS
+        function renderQuickButtons() {
+            const grid = document.getElementById('quick-buttons-grid');
+            if (!grid) return;
+
+            let html = '';
+            RINGS.forEach(ring => {
+                html += `
+                    <button onclick="handleQuickScore('${ring.value}', ${ring.score})" style="background-color: ${ring.color}; color: ${ring.text};" className="h-10 rounded-lg font-bold text-sm shadow hover:scale-105 active:scale-95 transition flex items-center justify-center border border-black/20">
+                        ${ring.label}
+                    </button>
+                `;
+            });
+            html += `
+                <button onclick="handleQuickScore('M', 0)" class="h-10 rounded-lg font-bold text-sm shadow bg-slate-800 text-slate-300 hover:bg-slate-700 active:scale-95 transition border border-slate-700">
+                    M
+                </button>
+            `;
+            grid.innerHTML = html;
+        }
+
+        // RENDERING SCORECARD AND STATS
+        function renderScorecard() {
+            const totalScore = state.arrows.reduce((acc, a) => acc + a.score, 0);
+            const tensCount = state.arrows.filter(a => a.val === '10' || a.val === 'X').length;
+            const xsCount = state.arrows.filter(a => a.val === 'X').length;
+            const avgScore = state.arrows.length ? (totalScore / state.arrows.length).toFixed(2) : '0.00';
+            const maxEnds = Math.ceil(36 / state.arrowsPerEnd);
+
+            document.getElementById('stat-total-score').innerText = totalScore;
+            document.getElementById('stat-tens-xs').innerHTML = `${tensCount} <span class="text-xs text-slate-400">(${xsCount}X)</span>`;
+            document.getElementById('stat-avg-score').innerText = avgScore;
+            document.getElementById('stat-current-end').innerText = `${state.currentEnd} / ${maxEnds}`;
+            document.getElementById('arrow-counter').innerText = `${state.arrows.length} / 36 Arrows`;
+            document.getElementById('end-format-subtitle').innerText = `${state.arrowsPerEnd} arrows / end`;
+
+            // Render Ends Breakdown
+            const endsList = document.getElementById('ends-list');
+            if (!endsList) return;
+
+            let html = '';
+            for (let endNum = 1; endNum <= maxEnds; endNum++) {
+                const endArrows = state.arrows.filter(a => a.end === endNum);
+                const endScore = endArrows.reduce((acc, a) => acc + a.score, 0);
+
+                let arrowSlotsHtml = '';
+                for (let slot = 0; slot < state.arrowsPerEnd; slot++) {
+                    const arrow = endArrows[slot];
+                    if (arrow) {
+                        const isGold = arrow.val === 'X' || arrow.val === '10';
+                        const isMiss = arrow.val === 'M';
+                        const bgClass = isGold ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : isMiss ? 'bg-slate-800 text-slate-500' : 'bg-slate-800 text-slate-200';
+                        arrowSlotsHtml += `<span class="w-6 h-6 rounded text-xs font-bold flex items-center justify-center ${bgClass}">${arrow.val}</span>`;
+                    } else {
+                        arrowSlotsHtml += `<span class="w-6 h-6 rounded text-xs flex items-center justify-center border border-dashed border-slate-700 text-slate-600">-</span>`;
+                    }
+                }
+
+                const isActive = state.currentEnd === endNum;
+                html += `
+                    <div onclick="state.currentEnd = ${endNum}; renderTarget(); renderScorecard();" class="p-2.5 rounded-xl border transition cursor-pointer flex items-center justify-between ${isActive ? 'bg-slate-800/80 border-amber-500/50' : 'bg-slate-900/40 border-slate-800/80 hover:bg-slate-900'}">
+                        <div class="flex items-center gap-3">
+                            <span class="w-6 h-6 rounded-lg text-xs font-bold flex items-center justify-center ${isActive ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'}">E${endNum}</span>
+                            <div class="flex gap-1">${arrowSlotsHtml}</div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-sm font-bold text-slate-200">${endScore}</span>
+                            <span class="text-[10px] text-slate-500 block">pts</span>
+                        </div>
+                    </div>
+                `;
+            }
+            endsList.innerHTML = html;
+        }
+
+        // CENTROID & SIGHT CALCULATIONS
+        function getGroupCentroid() {
+            const validArrows = state.arrows.filter(a => a.val !== 'M');
+            if (validArrows.length < 3) return { ready: false };
+
+            const avgX = validArrows.reduce((sum, a) => sum + a.x, 0) / validArrows.length;
+            const avgY = validArrows.reduce((sum, a) => sum + a.y, 0) / validArrows.length;
+
+            const horizDirection = avgX > 2 ? 'Right' : avgX < -2 ? 'Left' : 'Centered';
+            const vertDirection = avgY > 2 ? 'Down' : avgY < -2 ? 'Up' : 'Centered';
+
+            const horizClicks = Math.round(Math.abs(avgX) / 3);
+            const vertClicks = Math.round(Math.abs(avgY) / 3);
+
+            return {
+                ready: true,
+                avgX,
+                avgY,
+                horizDirection,
+                vertDirection,
+                horizClicks,
+                vertClicks
+            };
+        }
+
+        // RENDERING SIGHT ASSISTANT & ANALYTICS
+        function renderAnalytics() {
+            const adviceContainer = document.getElementById('sight-advice-container');
+            const centroid = getGroupCentroid();
+
+            if (centroid.ready) {
+                adviceContainer.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                            <span class="text-xs text-slate-400 block mb-1">Elevation (Vertical)</span>
+                            <div class="text-xl font-bold text-amber-400">
+                                ${centroid.vertDirection === 'Up' ? 'Move Sight UP ⬆️' : centroid.vertDirection === 'Down' ? 'Move Sight DOWN ⬇️' : 'Vertical Centered ✅'}
+                            </div>
+                            ${centroid.vertDirection !== 'Centered' ? `<p class="text-xs text-slate-400 mt-1">Suggested Adjustment: ~${centroid.vertClicks} Clicks ${centroid.vertDirection}</p>` : ''}
+                        </div>
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                            <span class="text-xs text-slate-400 block mb-1">Windage (Horizontal)</span>
+                            <div class="text-xl font-bold text-sky-400">
+                                ${centroid.horizDirection === 'Right' ? 'Move Sight RIGHT ➡️' : centroid.horizDirection === 'Left' ? 'Move Sight LEFT ⬅️' : 'Windage Centered ✅'}
+                            </div>
+                            ${centroid.horizDirection !== 'Centered' ? `<p class="text-xs text-slate-400 mt-1">Suggested Adjustment: ~${centroid.horizClicks} Clicks ${centroid.horizDirection}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+            } else {
+                adviceContainer.innerHTML = `
+                    <div class="p-4 bg-slate-900 rounded-xl border border-slate-800 text-sm text-slate-400 flex items-center gap-2">
+                        <i data-lucide="info" class="w-4 h-4 text-amber-400"></i> Plot at least 3 arrows to calculate sight group adjustments.
+                    </div>
+                `;
+                lucide.createIcons();
+            }
+
+            // Analytics target rendering
+            const svg = document.getElementById('analytics-target-svg');
+            if (svg) {
+                let html = '';
+                [...RINGS].reverse().forEach(ring => {
+                    html += `<circle cx="0" cy="0" r="${ring.r}" fill="${ring.color}" stroke="#000" stroke-width="0.5" />`;
+                });
+
+                state.arrows.forEach(a => {
+                    html += `<circle cx="${a.x}" cy="${a.y}" r="3" fill="#10b981" stroke="#ffffff" stroke-width="1" />`;
+                });
+
+                if (centroid.ready) {
+                    html += `
+                        <g>
+                            <circle cx="${centroid.avgX}" cy="${centroid.avgY}" r="8" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="3 3" />
+                            <line x1="${centroid.avgX - 10}" y1="${centroid.avgY}" x2="${centroid.avgX + 10}" y2="${centroid.avgY}" stroke="#38bdf8" stroke-width="1.5" />
+                            <line x1="${centroid.avgX}" y1="${centroid.avgY - 10}" x2="${centroid.avgX}" y2="${centroid.avgY + 10}" stroke="#38bdf8" stroke-width="1.5" />
+                        </g>
+                    `;
+                }
+                svg.innerHTML = html;
+            }
+
+            // Render sight marks
+            renderSavedSightMarks();
+        }
+
+        function renderSavedSightMarks() {
+            const grid = document.getElementById('saved-sight-marks-grid');
+            if (!grid) return;
+
+            let html = '';
+            Object.entries(state.gear.sightMarks).forEach(([dist, mark]) => {
+                html += `
+                    <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800 flex justify-between items-center">
+                        <span class="text-xs font-semibold text-amber-400">${dist}</span>
+                        <span class="text-sm font-mono font-bold text-slate-200">${mark || '-'}</span>
+                    </div>
+                `;
+            });
+            grid.innerHTML = html;
+        }
+
+        function updateGearSensitivity(val) {
+            state.gear.sightClickSensitivity = parseFloat(val) || 0.2;
+            saveGearToStorage();
+        }
+
+        // RENDERING HISTORY LOG & CHART
+        function renderHistoryTab() {
+            document.getElementById('history-count').innerText = `${state.history.length} Sessions`;
+
+            const historyList = document.getElementById('history-list');
+            if (!historyList) return;
+
+            if (state.history.length === 0) {
+                historyList.innerHTML = `<p class="text-xs text-slate-500 py-6 text-center">No recorded sessions yet. Shoot a round and save it!</p>`;
+            } else {
+                let html = '';
+                state.history.forEach(item => {
+                    html += `
+                        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div class="flex items-center gap-4">
+                                <div class="bg-amber-500/10 text-amber-400 p-3 rounded-xl border border-amber-500/20 text-center min-w-[70px]">
+                                    <span class="text-xl font-black block">${item.totalScore}</span>
+                                    <span class="text-[9px] uppercase tracking-wider text-slate-400">/ 360</span>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-sm font-bold text-slate-200">${item.date}</span>
+                                        <span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md font-medium border border-slate-700">${item.distance}</span>
+                                    </div>
+                                    <p class="text-xs text-slate-400 mt-1">Bow: ${item.bowType} (${item.poundage} lbs) | Avg: ${item.avgScore} | 10s: ${item.tens} (Xs: ${item.xs})</p>
+                                </div>
+                            </div>
+                            <button onclick="deleteHistorySession('${item.id}')" class="text-slate-500 hover:text-rose-400 p-2 rounded-lg hover:bg-slate-800 transition self-end md:self-center">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+                historyList.innerHTML = html;
+                lucide.createIcons();
+            }
+
+            renderChart();
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('scoreChart');
+            if (!ctx) return;
+
+            if (chartInstance) chartInstance.destroy();
+
+            const sortedHistory = [...state.history].reverse();
+            const labels = sortedHistory.map(h => h.date);
+            const dataScores = sortedHistory.map(h => h.totalScore);
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Total Score (WA 360)',
+                        data: dataScores,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        tension: 0.3,
+                        fill: true,
+                        pointBackgroundColor: '#f59e0b',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 360,
+                            grid: { color: '#334155' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        x: {
+                            grid: { color: '#334155' },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#e2e8f0' } }
+                    }
+                }
+            });
+        }
+
+        function saveCurrentSession() {
+            if (state.arrows.length === 0) return;
+
+            const totalScore = state.arrows.reduce((acc, a) => acc + a.score, 0);
+            const tensCount = state.arrows.filter(a => a.val === '10' || a.val === 'X').length;
+            const xsCount = state.arrows.filter(a => a.val === 'X').length;
+            const avgScore = (totalScore / state.arrows.length).toFixed(2);
+
+            const newSession = {
+                id: Date.now().toString(),
+                date: state.sessionDate,
+                distance: state.distance === 'Custom' ? `${document.getElementById('input-custom-distance').value}m` : state.distance,
+                bowType: state.gear.bowType,
+                poundage: state.gear.poundage,
+                totalScore,
+                tens: tensCount,
+                xs: xsCount,
+                avgScore: parseFloat(avgScore)
+            };
+
+            state.history.unshift(newSession);
+            saveHistoryToStorage();
+            switchTab('history');
+        }
+
+        function deleteHistorySession(id) {
+            state.history = state.history.filter(h => h.id !== id);
+            saveHistoryToStorage();
+            renderHistoryTab();
+        }
+
+        // RENDERING GEAR SETUP PROFILE FORM
+        function renderGearForm() {
+            document.getElementById('gear-bow-type').value = state.gear.bowType;
+            document.getElementById('gear-poundage').value = state.gear.poundage;
+            document.getElementById('gear-draw-length').value = state.gear.drawLength;
+            document.getElementById('gear-arrow-model').value = state.gear.arrowModel;
+            document.getElementById('input-click-sensitivity').value = state.gear.sightClickSensitivity || 0.2;
+
+            if (state.gear.sightMarks) {
+                if (document.getElementById('sight-mark-18m')) document.getElementById('sight-mark-18m').value = state.gear.sightMarks['18m'] || '';
+                if (document.getElementById('sight-mark-30m')) document.getElementById('sight-mark-30m').value = state.gear.sightMarks['30m'] || '';
+                if (document.getElementById('sight-mark-50m')) document.getElementById('sight-mark-50m').value = state.gear.sightMarks['50m'] || '';
+                if (document.getElementById('sight-mark-70m')) document.getElementById('sight-mark-70m').value = state.gear.sightMarks['70m'] || '';
+            }
+        }
+
+        function saveGearProfile(e) {
+            e.preventDefault();
+            state.gear.bowType = document.getElementById('gear-bow-type').value;
+            state.gear.poundage = Number(document.getElementById('gear-poundage').value);
+            state.gear.drawLength = document.getElementById('gear-draw-length').value;
+            state.gear.arrowModel = document.getElementById('gear-arrow-model').value;
+
+            state.gear.sightMarks = {
+                '18m': document.getElementById('sight-mark-18m').value,
+                '30m': document.getElementById('sight-mark-30m').value,
+                '50m': document.getElementById('sight-mark-50m').value,
+                '70m': document.getElementById('sight-mark-70m').value,
+            };
+
+            saveGearToStorage();
+            alert('Bow profile and sight marks saved successfully!');
+        }
+    </script>
+</body>
+</html>
